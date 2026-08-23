@@ -8,6 +8,33 @@ In modern business operations, automation is critical, but current tools fall sh
 
 **Agentflow_AI solves this** by providing a visual, operator-in-the-loop canvas. Operators describe their desired automation in plain English (e.g. *"Append rows to a spreadsheet and post slack updates when an email is received"*). The system compiles this instructions prompt into a structured visual workflow. A multi-agent loop (Planner, Executor, Validator, Recovery, and Monitor) runs the steps sequentially, automatically recovering from transient errors (using exponential retry backoffs), and streaming logs and status alerts to the operator's browser timeline in real-time.
 
+### 📊 System Architecture & Execution Flow
+```mermaid
+graph TD
+    User([Operator Prompt]) -->|1. Submit Prompt| AI[AI Generator / Builder]
+    AI -->|2. Compile Graph Schema| Canvas[Visual React Flow Canvas]
+    Canvas -->|3. Drag / Configure Nodes| Editor[Visual Canvas Editor]
+    Editor -->|4. Trigger Run| Queue[BullMQ Execution Queue]
+    Queue -->|5. Process Job| Orchestrator[Master Agent Orchestrator]
+    Orchestrator -->|6. Stream Event| Sockets[Socket.IO Event Stream]
+    Sockets -->|7. Live Updates| Timeline[Browser Timeline Feed]
+```
+
+### 🤖 Multi-Agent Orchestration Chain
+```mermaid
+graph LR
+    subgraph Multi-Agent Loop
+        Planner[Planner Agent] -->|1. Topology Plan| Executor[Execution Agent]
+        Executor -->|2. Run Node Action| Validator[Validation Agent]
+        Validator -->|3. Verify Outputs| Recovery{Recovery Agent}
+        Recovery -->|Transient Error| Retry[Retry Backoff]
+        Retry --> Executor
+        Recovery -->|Fatal Error| Escalate[Escalate & Fail]
+        Validator -->|Success| Monitor[Monitoring Agent]
+        Monitor -->|Log Event / Socket.IO| Timeline([Timeline Stream])
+    end
+```
+
 ---
 
 ## 🚀 Quick Start Guide

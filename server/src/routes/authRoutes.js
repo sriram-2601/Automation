@@ -26,6 +26,7 @@ const loginValidation = [
 
 router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
+router.post('/social', body('provider').notEmpty().withMessage('Provider is required').trim(), authController.socialLogin);
 router.get('/me', protect, authController.getMe);
 
 export default router;

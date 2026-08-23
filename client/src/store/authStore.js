@@ -83,6 +83,27 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  loginWithSocial: async (provider) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('/auth/social', { provider });
+      const { token, user } = response.data;
+
+      localStorage.setItem('agentflow_token', token);
+      set({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return { success: true };
+    } catch (err) {
+      const errMsg = err.response?.data?.message || `Social authentication with ${provider} failed`;
+      set({ isLoading: false, error: errMsg });
+      return { success: false, error: errMsg };
+    }
+  },
+
   logout: () => {
     localStorage.removeItem('agentflow_token');
     set({

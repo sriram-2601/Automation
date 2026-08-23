@@ -53,3 +53,24 @@ export async function getMe(req, res) {
     return res.status(500).json({ message: error.message });
   }
 }
+
+export async function socialLogin(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { provider } = req.body;
+    const user = await authService.authenticateSocialUser({ provider });
+    const token = authService.generateToken(user);
+
+    return res.status(200).json({
+      message: `Login with ${provider} successful`,
+      token,
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+}

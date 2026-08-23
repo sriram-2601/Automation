@@ -126,3 +126,65 @@ export async function findUserByEmail(email) {
     return inMemoryUsers.find(u => u.email === normEmail) || null;
   }
 }
+
+export async function authenticateSocialUser({ provider }) {
+  const normProvider = provider.toLowerCase();
+  const email = `${normProvider}.operator@agentflow.ai`;
+  const name = `Operator (${provider.charAt(0).toUpperCase() + provider.slice(1)})`;
+  const role = 'operator';
+
+  const user = await findUserByEmail(email);
+  if (user) {
+    const now = new Date();
+    if (dbStatus.connected) {
+      user.lastLogin = now;
+      await user.save();
+      const userObj = user.toObject();
+      delete userObj.password;
+      return userObj;
+    } else {
+      const idx = inMemoryUsers.findIndex(u => u._id === user._id);
+      if (idx !== -1) {
+        inMemoryUsers[idx].lastLogin = now;
+      }
+      const userCopy = { ...user };
+      delete userCopy.password;
+      return userCopy;
+    }
+  }
+
+  // Create new user for this provider
+  const mockPassword = Math.random().toString(36).substring(2, 15);
+  const hashedPassword = await bcrypt.hash(mockPassword, 12);
+
+  if (dbStatus.connected) {
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      lastLogin: new Date(),
+    });
+    await newUser.save();
+    const userObj = newUser.toObject();
+    delete userObj.password;
+    return userObj;
+  } else {
+    const mockId = `mock-user-${normProvider}-${Date.now()}`;
+    const newUser = {
+      _id: mockId,
+      id: mockId,
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      lastLogin: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    inMemoryUsers.push(newUser);
+    const userCopy = { ...newUser };
+    delete userCopy.password;
+    return userCopy;
+  }
+}

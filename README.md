@@ -1,5 +1,10 @@
 # Agentflow_AI — Agentic AI Automation Platform
 
+### 🚀 Live Deployment Links
+* **Frontend Web Console (Live on Vercel)**: [https://client-eight-gules-56.vercel.app](https://client-eight-gules-56.vercel.app)
+* **Backend API Gateway Tunnel**: [https://brown-garlics-give.loca.lt](https://brown-garlics-give.loca.lt)
+
+---
 ## 🌍 The Problem Agentflow_AI Solves (Real-World Scenarios)
 In modern business operations, automation is critical, but current tools fall short:
 1. **The Technical Barrier**: Building integrations in tools like Zapier or n8n still requires understanding nodes, schemas, and endpoints, making it slow for non-technical managers.

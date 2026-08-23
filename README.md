@@ -50,31 +50,19 @@ graph LR
 * **Redis** (optional, fallback in-memory queues are active by default)
 
 ### Installation
-1. Clone the project and navigate to the project directory.
-2. Install client dependencies:
+1. Clone the project and navigate to the root directory.
+2. Install all dependencies (frontend, backend, and unified root runner) with a single command:
    ```bash
-   cd client
-   npm install
-   ```
-3. Install server dependencies:
-   ```bash
-   cd ../server
-   npm install
+   npm run install-all && npm install
    ```
 
-### Local Dev Server Run
-1. **Start the backend server**:
-   ```bash
-   cd server
-   node src/index.js
-   ```
-   *The backend will run on port `5001` and connect to your local MongoDB database.*
-2. **Start the frontend client** (in a new terminal):
-   ```bash
-   cd client
-   npm run dev
-   ```
-   *The frontend compiles using Turbopack and starts on `http://localhost:3000`.*
+### Local Dev Server Run (Single Command)
+To start both the Next.js client dev server and the Express backend server concurrently in a single terminal:
+```bash
+npm start
+```
+* The Next.js frontend will compile and start at `http://localhost:3000`.
+* The Express backend will start at `http://localhost:5001` and connect to your local MongoDB database.
 
 ---
 

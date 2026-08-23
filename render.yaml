@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: agentflow-backend
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node src/index.js
+    envVars:
+      - key: PORT
+        value: 5001
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        description: "Your MongoDB Atlas connection string (e.g. mongodb+srv://...)"
+      - key: JWT_SECRET
+        description: "Random secret key for signing JWT tokens"
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CREDENTIAL_ENCRYPTION_KEY
+        description: "A secure 32-character string to encrypt integration keys"
+      - key: CLIENT_URL
+        description: "The Vercel URL of your frontend (e.g. https://client-eight-gules-56.vercel.app)"

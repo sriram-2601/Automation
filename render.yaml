@@ -11,13 +11,13 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        description: "Your MongoDB Atlas connection string (e.g. mongodb+srv://...)"
+        sync: false
       - key: JWT_SECRET
         description: "Random secret key for signing JWT tokens"
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: CREDENTIAL_ENCRYPTION_KEY
-        description: "A secure 32-character string to encrypt integration keys"
+        sync: false
       - key: CLIENT_URL
-        description: "The Vercel URL of your frontend (e.g. https://client-eight-gules-56.vercel.app)"
+        sync: false

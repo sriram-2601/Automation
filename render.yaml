@@ -1,11 +1,10 @@
 services:
   - type: web
-    name: agentflow-backend
+    name: agentflow-ai
     env: node
     plan: free
-    rootDir: server
-    buildCommand: npm install
-    startCommand: node src/index.js
+    buildCommand: npm install && npm run install-all && npm run build
+    startCommand: npm start
     envVars:
       - key: PORT
         value: 5001

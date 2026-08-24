@@ -1,5 +1,7 @@
 import express from 'express';
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -21,7 +23,10 @@ const app = express();
 const server = http.createServer(app);
 
 // 1. Security Headers & CORS
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(cors({
   origin: [env.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -72,6 +77,39 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// Serve Next.js static export files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientOutPath = path.resolve(__dirname, '../../client/out');
+
+app.use(express.static(clientOutPath));
+
+// Fallback all other client-side routing to index.html or matching html files
+app.get('*', (req, res, next) => {
+  // Ignore API and socket.io routes
+  if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+
+  let cleanPath = req.path;
+  if (cleanPath.endsWith('/')) {
+    cleanPath = cleanPath.slice(0, -1);
+  }
+
+  // Check if cleanPath.html exists (e.g. /dashboard -> /dashboard.html)
+  const filePath = path.join(clientOutPath, cleanPath || 'index');
+  res.sendFile(`${filePath}.html`, (err) => {
+    if (err) {
+      // If the file doesn't exist, fallback to index.html for SPA router
+      res.sendFile(path.join(clientOutPath, 'index.html'), (err2) => {
+        if (err2) {
+          next();
+        }
+      });
+    }
+  });
+});
 
 // 8. Global Error Handler
 app.use((err, req, res, next) => {

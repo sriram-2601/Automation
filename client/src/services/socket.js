@@ -1,6 +1,18 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5001';
+let SOCKET_URL = 'http://localhost:5001';
+
+if (typeof window !== 'undefined') {
+  if (window.location.hostname !== 'localhost') {
+    SOCKET_URL = window.location.origin;
+  } else {
+    if (window.location.port === '3000') {
+      SOCKET_URL = 'http://localhost:5001';
+    } else {
+      SOCKET_URL = window.location.origin;
+    }
+  }
+}
 
 let socket = null;
 

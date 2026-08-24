@@ -1,6 +1,18 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+let API_URL = 'http://localhost:5001/api';
+
+if (typeof window !== 'undefined') {
+  if (window.location.hostname !== 'localhost') {
+    API_URL = '/api';
+  } else {
+    if (window.location.port === '3000') {
+      API_URL = 'http://localhost:5001/api';
+    } else {
+      API_URL = '/api';
+    }
+  }
+}
 
 const api = axios.create({
   baseURL: API_URL,

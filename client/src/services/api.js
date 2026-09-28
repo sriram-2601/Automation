@@ -1,16 +1,12 @@
 import axios from 'axios';
 
-let API_URL = 'http://localhost:5001/api';
+let API_URL = '/api';
 
 if (typeof window !== 'undefined') {
-  if (window.location.hostname !== 'localhost') {
-    API_URL = '/api';
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    API_URL = process.env.NEXT_PUBLIC_API_URL;
   } else {
-    if (window.location.port === '3000') {
-      API_URL = 'http://localhost:5001/api';
-    } else {
-      API_URL = '/api';
-    }
+    API_URL = '/api';
   }
 }
 
@@ -47,7 +43,6 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('agentflow_token');
-        // We could redirect or emit event if auth expires
       }
     }
     return Promise.reject(error);

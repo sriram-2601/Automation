@@ -57,7 +57,7 @@ export default function NodeConfigPanel({ node, onClose, onUpdate }) {
               <input
                 type="text"
                 readOnly
-                value={config.webhookUrl || `http://localhost:5000/api/webhooks/${node.id}`}
+                value={config.webhookUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/${node.id}` : `/api/webhooks/${node.id}`)}
                 className="w-full bg-slate-950/40 border border-slate-850 rounded-xl py-2.5 px-3.5 text-sm text-slate-500 outline-none select-all"
               />
               <span className="text-[10px] text-slate-500 font-medium">POST requests to this URL trigger execution runs</span>

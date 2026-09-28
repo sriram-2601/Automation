@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -20,6 +21,7 @@ import { getRedisStatus } from './queues/executionQueue.js';
 
 // Initialize express app
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // 1. Security Headers & CORS
@@ -28,7 +30,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(cors({
-  origin: [env.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
@@ -97,18 +99,40 @@ app.get('*', (req, res, next) => {
     cleanPath = cleanPath.slice(0, -1);
   }
 
+  // Exact file in clientOutPath
+  const exactFile = path.join(clientOutPath, cleanPath);
+  if (cleanPath && fs.existsSync(exactFile) && fs.statSync(exactFile).isFile()) {
+    return res.sendFile(exactFile);
+  }
+
   // Check if cleanPath.html exists (e.g. /dashboard -> /dashboard.html)
-  const filePath = path.join(clientOutPath, cleanPath || 'index');
-  res.sendFile(`${filePath}.html`, (err) => {
-    if (err) {
-      // If the file doesn't exist, fallback to index.html for SPA router
-      res.sendFile(path.join(clientOutPath, 'index.html'), (err2) => {
-        if (err2) {
-          next();
-        }
-      });
+  const htmlFile = path.join(clientOutPath, `${cleanPath || 'index'}.html`);
+  if (fs.existsSync(htmlFile)) {
+    return res.sendFile(htmlFile);
+  }
+
+  // Match dynamic routes exported by Next.js
+  if (cleanPath.startsWith('/workflows/')) {
+    const workflowDynamic = path.join(clientOutPath, 'workflows/[id].html');
+    if (fs.existsSync(workflowDynamic)) {
+      return res.sendFile(workflowDynamic);
     }
-  });
+  }
+
+  if (cleanPath.startsWith('/executions/')) {
+    const executionDynamic = path.join(clientOutPath, 'executions/[id].html');
+    if (fs.existsSync(executionDynamic)) {
+      return res.sendFile(executionDynamic);
+    }
+  }
+
+  // Fallback to index.html for SPA router
+  const indexHtml = path.join(clientOutPath, 'index.html');
+  if (fs.existsSync(indexHtml)) {
+    return res.sendFile(indexHtml);
+  }
+
+  next();
 });
 
 // 8. Global Error Handler

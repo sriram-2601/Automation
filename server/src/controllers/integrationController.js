@@ -38,7 +38,7 @@ export async function oauthStart(req, res) {
   const userId = req.query.userId || '';
 
   // Redirect to callback route on local API, forwarding the userId
-  const callbackUrl = `http://localhost:5000/api/integrations/oauth/${provider}/callback?code=mock_authorization_code_12345&state=oauth_state&userId=${userId}`;
+  const callbackUrl = `http://localhost:${env.PORT}/api/integrations/oauth/${provider}/callback?code=mock_authorization_code_12345&state=oauth_state&userId=${userId}`;
   return res.redirect(callbackUrl);
 }
 

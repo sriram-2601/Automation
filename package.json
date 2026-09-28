@@ -8,7 +8,7 @@
     "server": "npm run dev --prefix server",
     "build": "npm run build --prefix client",
     "start": "node server/src/index.js",
-    "dev": "npx concurrently --kill-others \"npm run dev --prefix client\" \"npm run dev --prefix server\""
+    "dev": "node server/src/index.js"
   },
   "dependencies": {
     "concurrently": "^8.2.2"

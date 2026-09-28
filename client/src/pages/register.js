@@ -23,11 +23,40 @@ export default function Register() {
     }
   }, [isAuthenticated, router]);
 
-  // Clear errors on page mount
+  // Clear errors on page mount and check for OAuth callback params
   useEffect(() => {
     clearError();
     setValidationError('');
-  }, [clearError]);
+
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const err = urlParams.get('error');
+
+    if (token) {
+      localStorage.setItem('agentflow_token', token);
+      useAuthStore.getState().initAuth().then(() => {
+        router.push('/dashboard');
+      });
+      return;
+    }
+
+    if (err) {
+      if (err === 'google_not_configured') {
+        setValidationError('Google OAuth is not configured yet. Please add your GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to server/.env');
+      } else if (err === 'github_not_configured') {
+        setValidationError('GitHub OAuth is not configured yet. Please add your GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to server/.env');
+      } else if (err === 'twitter_not_configured') {
+        setValidationError('X (Twitter) OAuth is not configured yet. Please add your TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET to server/.env');
+      } else if (err === 'facebook_not_configured') {
+        setValidationError('Facebook OAuth is not configured yet. Please add your FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET to server/.env');
+      } else {
+        setValidationError(`Authentication error: ${decodeURIComponent(err)}`);
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [clearError, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,6 +87,25 @@ export default function Register() {
   const handleSocialRegister = async (provider) => {
     setValidationError('');
     clearError();
+
+    const prov = provider.toLowerCase();
+    if (prov === 'google') {
+      window.location.href = '/api/auth/google';
+      return;
+    }
+    if (prov === 'github') {
+      window.location.href = '/api/auth/github';
+      return;
+    }
+    if (prov === 'twitter') {
+      window.location.href = '/api/auth/twitter';
+      return;
+    }
+    if (prov === 'facebook') {
+      window.location.href = '/api/auth/facebook';
+      return;
+    }
+
     const result = await loginWithSocial(provider);
     if (result.success) {
       router.push('/dashboard');

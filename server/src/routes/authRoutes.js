@@ -27,6 +27,14 @@ const loginValidation = [
 router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
 router.post('/social', body('provider').notEmpty().withMessage('Provider is required').trim(), authController.socialLogin);
+router.get('/google', authController.googleAuth);
+router.get('/google/callback', authController.googleCallback);
+router.get('/github', authController.githubAuth);
+router.get('/github/callback', authController.githubCallback);
+router.get('/twitter', authController.twitterAuth);
+router.get('/twitter/callback', authController.twitterCallback);
+router.get('/facebook', authController.facebookAuth);
+router.get('/facebook/callback', authController.facebookCallback);
 router.get('/me', protect, authController.getMe);
 
 export default router;

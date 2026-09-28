@@ -52,7 +52,7 @@ export default function Integrations() {
   const handleConnect = (provider) => {
     const userId = user?._id || user?.id || '';
     // Redirect browser to backend OAuth redirect initiator
-    window.location.href = `http://localhost:5000/api/integrations/oauth/${provider}/start?userId=${userId}`;
+    window.location.href = `${api.defaults.baseURL}/integrations/oauth/${provider}/start?userId=${userId}`;
   };
 
   const handleDisconnect = async (provider) => {

@@ -62,26 +62,27 @@ export async function registerUser({ name, email, password, role = 'operator' })
 }
 
 export async function loginUser({ email, password }) {
+  const normEmail = (email || '').toLowerCase().trim();
   let user = null;
 
   if (dbStatus.connected) {
     // Explicitly select password since it has select: false
-    user = await User.findOne({ email }).select('+password');
+    user = await User.findOne({ email: normEmail }).select('+password');
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error('Account not found with this email. Please click "Create Account" below to register first.');
     }
   } else {
     // In-Memory Fallback
-    user = inMemoryUsers.find(u => u.email === email.toLowerCase());
+    user = inMemoryUsers.find(u => u.email === normEmail);
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error('Account not found with this email. Please click "Create Account" below to register first.');
     }
   }
 
   // Compare passwords
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    throw new Error('Invalid email or password');
+    throw new Error('Incorrect password. Please verify your credentials and try again.');
   }
 
   // Update last login
@@ -188,3 +189,61 @@ export async function authenticateSocialUser({ provider }) {
     return userCopy;
   }
 }
+
+export async function findOrCreateOAuthUser({ email, name, provider, avatar }) {
+  const normEmail = (email || '').toLowerCase().trim();
+  let user = await findUserByEmail(normEmail);
+
+  if (user) {
+    const now = new Date();
+    if (dbStatus.connected) {
+      user.lastLogin = now;
+      await user.save();
+      const userObj = user.toObject();
+      delete userObj.password;
+      return userObj;
+    } else {
+      user.lastLogin = now;
+      const userCopy = { ...user };
+      delete userCopy.password;
+      return userCopy;
+    }
+  }
+
+  // Create new user for this OAuth account
+  const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const hashedPassword = await bcrypt.hash(randomPassword, 12);
+  const role = 'operator';
+
+  if (dbStatus.connected) {
+    const newUser = new User({
+      name: name || normEmail.split('@')[0],
+      email: normEmail,
+      password: hashedPassword,
+      role,
+      lastLogin: new Date(),
+    });
+    await newUser.save();
+    const userObj = newUser.toObject();
+    delete userObj.password;
+    return userObj;
+  } else {
+    const mockId = `oauth-user-${Date.now()}`;
+    const newUser = {
+      _id: mockId,
+      id: mockId,
+      name: name || normEmail.split('@')[0],
+      email: normEmail,
+      password: hashedPassword,
+      role,
+      lastLogin: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    inMemoryUsers.push(newUser);
+    const userCopy = { ...newUser };
+    delete userCopy.password;
+    return userCopy;
+  }
+}
+

@@ -1,24 +1,11 @@
 import { io } from 'socket.io-client';
 
-let SOCKET_URL = 'http://localhost:5001';
-
-if (typeof window !== 'undefined') {
-  if (window.location.hostname !== 'localhost') {
-    SOCKET_URL = window.location.origin;
-  } else {
-    if (window.location.port === '3000') {
-      SOCKET_URL = 'http://localhost:5001';
-    } else {
-      SOCKET_URL = window.location.origin;
-    }
-  }
-}
-
 let socket = null;
 
 export function getSocket() {
   if (!socket) {
-    socket = io(SOCKET_URL, {
+    const socketUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    socket = io(socketUrl, {
       autoConnect: false,
       withCredentials: true,
     });

@@ -8,40 +8,37 @@ let executionWorker = null;
 let redisConnection = null;
 let isRedisAvailable = false;
 
-// Initialize connection
-try {
-  redisConnection = new Redis(env.REDIS_URL, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    connectTimeout: 2000, // 2 seconds timeout
-    retryStrategy(times) {
-      if (times > 2) {
-        return null; // Stop retrying to let fallback trigger
-      }
-      return 1000;
-    }
-  });
+// Initialize connection with safe fallback
+export async function initQueue() {
+  if (!env.REDIS_URL) {
+    console.log('[Queue] No REDIS_URL provided. Using in-memory execution queue.');
+    return;
+  }
 
-  redisConnection.on('error', (err) => {
-    console.warn('[Queue] Redis connection error. Using in-memory fallback.');
-    isRedisAvailable = false;
-  });
-
-  redisConnection.on('connect', () => {
-    console.log('[Queue] Redis connected successfully for background jobs.');
-    isRedisAvailable = true;
-  });
-
-  executionQueue = new Queue('executionQueue', { connection: redisConnection });
-  isRedisAvailable = true;
-} catch (e) {
-  console.warn('[Queue] Could not initialize BullMQ queue, using in-memory execution fallback:', e.message);
-  isRedisAvailable = false;
-}
-
-// Set up worker if Redis connects
-if (isRedisAvailable && redisConnection) {
   try {
+    const testRedis = new Redis(env.REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      connectTimeout: 2000,
+      retryStrategy: () => null // Do not infinite retry if unavailable on start
+    });
+
+    testRedis.on('error', () => {
+      // Suppress unhandled error events during connection attempts
+    });
+
+    await testRedis.connect();
+
+    console.log('[Queue] Redis connected successfully for background jobs.');
+    redisConnection = testRedis;
+    isRedisAvailable = true;
+
+    executionQueue = new Queue('executionQueue', { connection: redisConnection });
+    executionQueue.on('error', (err) => {
+      console.warn('[Queue] BullMQ Queue error:', err.message);
+    });
+
     executionWorker = new Worker('executionQueue', async (job) => {
       const { executionId, inputs } = job.data;
       console.log(`[Queue Worker] Processing background job for execution: ${executionId}`);
@@ -49,6 +46,10 @@ if (isRedisAvailable && redisConnection) {
     }, { 
       connection: redisConnection,
       concurrency: 5
+    });
+
+    executionWorker.on('error', (err) => {
+      console.warn('[Queue Worker] BullMQ Worker error:', err.message);
     });
 
     executionWorker.on('completed', (job) => {
@@ -59,10 +60,17 @@ if (isRedisAvailable && redisConnection) {
       console.error(`[Queue Worker] Failed job ${job?.id} for execution: ${job?.data?.executionId}:`, err);
     });
   } catch (err) {
-    console.warn('[Queue Worker] Failed to start BullMQ worker:', err.message);
+    console.warn('[Queue] Redis is unavailable. Using in-memory execution fallback.');
     isRedisAvailable = false;
+    if (redisConnection) {
+      try { redisConnection.disconnect(); } catch (e) {}
+      redisConnection = null;
+    }
   }
 }
+
+// Start queue initialization
+initQueue().catch(() => {});
 
 export async function addExecutionJob(executionId, inputs = {}) {
   // If Redis connected, attempt to add job

@@ -243,14 +243,13 @@ export async function githubCallback(req, res) {
 // Initiates X (Twitter) OAuth 2.0 redirect
 export async function twitterAuth(req, res) {
   if (!env.TWITTER_CLIENT_ID || !env.TWITTER_CLIENT_SECRET) {
-    return res.redirect(`${env.CLIENT_URL}/login?error=twitter_not_configured`);
+    return res.redirect(`${getClientUrl(req)}/login?error=twitter_not_configured`);
   }
 
-  const host = req.get('host') || 'localhost:3000';
-  const protocol = req.protocol || 'http';
-  const redirectUri = `${protocol}://${host}/api/auth/twitter/callback`;
+  const clientUrl = getClientUrl(req);
+  const redirectUri = `${clientUrl}/api/auth/twitter/callback`;
   const scope = encodeURIComponent('tweet.read users.read offline.access');
-  const state = encodeURIComponent(JSON.stringify({ host }));
+  const state = encodeURIComponent(JSON.stringify({ clientUrl }));
   const twitterAuthUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${env.TWITTER_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}&code_challenge=challenge&code_challenge_method=plain`;
 
   return res.redirect(twitterAuthUrl);
@@ -261,18 +260,18 @@ export async function twitterCallback(req, res) {
   const { code, error } = req.query;
 
   if (error || !code) {
-    return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(error || 'X (Twitter) login was cancelled')}`);
+    return res.redirect(`${getClientUrl(req)}/login?error=${encodeURIComponent(error || 'X (Twitter) login was cancelled')}`);
   }
 
   try {
-    let host = req.get('host') || 'localhost:3000';
+    let clientUrl = getClientUrl(req);
     try {
       if (req.query.state) {
         const s = JSON.parse(decodeURIComponent(req.query.state));
-        if (s.host) host = s.host;
+        if (s.clientUrl) clientUrl = s.clientUrl;
       }
     } catch (e) {}
-    const redirectUri = `${req.protocol || 'http'}://${host}/api/auth/twitter/callback`;
+    const redirectUri = `${clientUrl}/api/auth/twitter/callback`;
     const basicAuth = Buffer.from(`${env.TWITTER_CLIENT_ID}:${env.TWITTER_CLIENT_SECRET}`).toString('base64');
 
     const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
@@ -293,7 +292,7 @@ export async function twitterCallback(req, res) {
     const tokenData = await tokenResponse.json();
     if (!tokenData.access_token) {
       console.error('Failed to exchange code with Twitter:', tokenData);
-      return res.redirect(`${env.CLIENT_URL}/login?error=Failed to retrieve X (Twitter) access token`);
+      return res.redirect(`${clientUrl}/login?error=Failed to retrieve X (Twitter) access token`);
     }
 
     // Fetch Twitter user info
@@ -306,7 +305,7 @@ export async function twitterCallback(req, res) {
     const userData = await userRes.json();
     const twUser = userData.data;
     if (!twUser) {
-      return res.redirect(`${env.CLIENT_URL}/login?error=Failed to get profile from Twitter`);
+      return res.redirect(`${clientUrl}/login?error=Failed to get profile from Twitter`);
     }
 
     const email = `${twUser.username.toLowerCase()}@x.com`;
@@ -318,12 +317,13 @@ export async function twitterCallback(req, res) {
     });
 
     const token = authService.generateToken(user);
-    return res.redirect(`${env.CLIENT_URL}/login?token=${token}`);
+    return res.redirect(`${clientUrl}/login?token=${token}`);
   } catch (err) {
     console.error('Error during Twitter OAuth callback:', err);
-    return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(err.message || 'X (Twitter) authentication failed')}`);
+    return res.redirect(`${getClientUrl(req)}/login?error=${encodeURIComponent(err.message || 'X (Twitter) authentication failed')}`);
   }
 }
+
 
 // Initiates Facebook (Meta) OAuth redirect
 export async function facebookAuth(req, res) {
